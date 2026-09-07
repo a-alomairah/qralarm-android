@@ -319,20 +319,22 @@ class AlarmActivity : FragmentActivity() {
 
     private val consumedVolumeKeys = mutableSetOf<Int>()
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_UP && consumedVolumeKeys.remove(event.keyCode)) {
-            return true
-        }
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val session = AlarmProtectionSession.state.value
         if (session != null && session.alarmId == intent.getLongExtra(EXTRA_ALARM_ID, 0L) &&
             session.blockVolumeDown &&
-            (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-                event.keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || event.keyCode == KeyEvent.KEYCODE_MUTE)
+            (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+                keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || keyCode == KeyEvent.KEYCODE_MUTE)
         ) {
-            if (event.action == KeyEvent.ACTION_DOWN) consumedVolumeKeys.add(event.keyCode)
+            consumedVolumeKeys.add(keyCode)
             return true
         }
-        return super.dispatchKeyEvent(event)
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (consumedVolumeKeys.remove(keyCode)) return true
+        return super.onKeyUp(keyCode, event)
     }
 
     companion object {

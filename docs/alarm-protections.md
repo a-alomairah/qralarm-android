@@ -72,6 +72,9 @@ and Room Testing support the device migration test. `:app:connectedDebugAndroidT
 actual version-10 database upgrade. Room exports the version-11 schema during compilation; keep
 the generated schema with future migration changes. GitHub Actions compiles debug/release,
 executes the unit tests, runs lint, and uploads debug APKs, generated schemas and reports.
+A separate Android emulator job tests the version-10 upgrade and all 16 combinations through
+the repository. CI caches the test signing key for convenient updates; cache eviction can
+change that key, so a personal release still needs a separately managed signing key.
 
 Implementation references:
 

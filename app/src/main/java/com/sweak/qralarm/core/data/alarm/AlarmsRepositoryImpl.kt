@@ -191,10 +191,10 @@ class AlarmsRepositoryImpl @Inject constructor(
             gentleWakeUpDurationInSeconds = alarmEntity.gentleWakeUpDurationInSeconds,
             temporaryMuteDurationInSeconds = alarmEntity.temporaryMuteDurationInSeconds,
             skipAlarmUntilTimeInMillis = alarmEntity.skipAlarmUntilTimeInMillis,
-                isDoNotLeaveAlarmEnabled = alarmEntity.isDoNotLeaveAlarmEnabled,
-                isPowerOffGuardEnabled = alarmEntity.isPowerOffGuardEnabled,
-                isBlockVolumeDownEnabled = alarmEntity.isBlockVolumeDownEnabled,
-                isKeepRingerOnEnabled = alarmEntity.isKeepRingerOnEnabled
+            isDoNotLeaveAlarmEnabled = alarmEntity.isDoNotLeaveAlarmEnabled,
+            isPowerOffGuardEnabled = alarmEntity.isPowerOffGuardEnabled,
+            isBlockVolumeDownEnabled = alarmEntity.isBlockVolumeDownEnabled,
+            isKeepRingerOnEnabled = alarmEntity.isKeepRingerOnEnabled
         )
     }
 

@@ -1,5 +1,8 @@
 package com.sweak.qralarm.core.storage.database
 
+import androidx.room.Room
+import com.sweak.qralarm.core.data.alarm.AlarmsRepositoryImpl
+import kotlinx.coroutines.runBlocking
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -34,6 +37,29 @@ class AlarmProtectionMigrationTest {
                 }
             }
             close()
+        }
+        val database = Room.databaseBuilder(
+            InstrumentationRegistry.getInstrumentation().targetContext,
+            QRAlarmDatabase::class.java, name
+        ).addMigrations(QRAlarmDatabase.MIGRATION_10_11).build()
+        try {
+            runBlocking {
+                val repository = AlarmsRepositoryImpl(database.alarmsDao(), database.codesDao())
+                val original = checkNotNull(repository.getAlarm(42))
+                // Exercise both entity mappings with all independent on/off combinations.
+                for (mask in 0..15) {
+                    val configured = original.copy(
+                        isDoNotLeaveAlarmEnabled = (mask and 1) != 0,
+                        isPowerOffGuardEnabled = (mask and 2) != 0,
+                        isBlockVolumeDownEnabled = (mask and 4) != 0,
+                        isKeepRingerOnEnabled = (mask and 8) != 0
+                    )
+                    repository.addOrEditAlarm(configured)
+                    assertEquals(configured, repository.getAlarm(42))
+                }
+            }
+        } finally {
+            database.close()
         }
     }
 }

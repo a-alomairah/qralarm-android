@@ -255,22 +255,4 @@
     <string name="widget_today">Today</string>
     <string name="widget_tomorrow">Tomorrow</string>
     <string name="widget_tap_to_add">Tap to add one</string>
-
-    <string name="alarm_protections_off">All protections off</string>
-    <string name="alarm_protection_service">QRAlarm alarm protections</string>
-    <string name="alarm_protection_disclosure">While a protected alarm rings, this service observes app changes and volume keys. For Power-off guard it reads only system power-menu content to try to dismiss the menu. It does not store or transmit screen content. Calls, permission prompts and Android Settings remain accessible.</string>
-    <string name="alarm_protection_accessibility_needed">Accessibility is needed to return from other apps, guard the power menu and block volume keys outside QRAlarm. Alarm volume protection inside the service works without it.</string>
-    <string name="alarm_protection_accessibility_ready">Accessibility service is enabled.</string>
-    <string name="alarm_protection_open_accessibility">Open accessibility settings</string>
-    <string name="alarm_protection_restricted_settings">If Android blocks enabling the service for a sideloaded app, open its App info menu and allow restricted settings, then return here.</string>
-    <string name="alarm_protection_dnd_needed">Keep ringer on needs Do Not Disturb access to change silent or vibration mode. This does not change which sounds your Do Not Disturb rules allow.</string>
-    <string name="alarm_protection_dnd_ready">Do Not Disturb access is granted.</string>
-    <string name="alarm_protection_open_dnd">Open Do Not Disturb access</string>
-    <string name="alarm_protection_limits">Power-off guard is best effort: it tries to dismiss recognized Android and Samsung power menus in English or Arabic. It cannot prevent a forced reboot, actual shutdown or force-stop. Protections stop when you dismiss or snooze the alarm; the in-app emergency task remains available.</string>
-    <string name="alarm_protection_volume_hint">Block volume down keeps the alarm at or above the volume selected when it starts. If system alarm volume is zero, the minimum audible level is used. Volume up still works. Previous alarm volume is restored afterward.</string>
-    <string name="alarm_protection_samsung_title">Samsung Galaxy / One UI</string>
-    <string name="alarm_protection_samsung_help">For reliable overnight alarms, set QRAlarm battery use to Unrestricted in App info. In Settings → Battery → Background usage limits, remove it from Sleeping and Deep sleeping apps; add it to Never sleeping apps if available. Allow Alarms and reminders, notifications, and full-screen alerts. Names vary with your One UI version. Test with the phone locked and your usual Sleep mode enabled.</string>
-    <string name="alarm_protection_app_info">Open app info</string>
-    <string name="alarm_protection_settings_unavailable">This settings screen is unavailable. Open it from Android Settings.</string>
-
 </resources>

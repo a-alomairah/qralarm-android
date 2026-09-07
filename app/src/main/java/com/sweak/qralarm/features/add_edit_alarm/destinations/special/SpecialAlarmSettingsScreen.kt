@@ -100,7 +100,6 @@ fun SpecialAlarmSettingsScreenContent(
                 .verticalScroll(rememberScrollState())
         ) {
             Column(modifier = Modifier.padding(paddingValues)) {
-                AlarmProtectionPermissions(state)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -163,6 +162,7 @@ fun SpecialAlarmSettingsScreenContent(
                         description = stringResource(R.string.keep_ringer_on_description)
                     )
                 }
+                AlarmProtectionPermissions(state)
             }
         }
     }

@@ -43,6 +43,17 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
                         flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
                     } else flags and AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS.inv()
                 }
+                // On an unlocked phone Android may show a heads-up notification instead of
+                // launching the alarm activity. Handle that initial foreground app as well.
+                if (session?.doNotLeave == true) {
+                    val root = rootInActiveWindow
+                    val currentPackage = root?.packageName?.toString()
+                    @Suppress("DEPRECATION")
+                    root?.recycle()
+                    if (currentPackage != null && currentPackage != packageName &&
+                        !isAllowedSystemWindow(currentPackage)
+                    ) scheduleAlarmReturn(session)
+                }
             }
         }
     }
@@ -84,22 +95,26 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
         if (session.doNotLeave && event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             !isAllowedSystemWindow(foregroundPackage)
         ) {
-            restoreJob = scope.launch {
-                delay(500)
-                if (AlarmProtectionSession.state.value != session) return@launch
-                try {
-                    startActivity(Intent(this@AlarmProtectionAccessibilityService,
-                        AlarmActivity::class.java).apply {
-                        putExtra(AlarmActivity.EXTRA_ALARM_ID, session.alarmId)
-                        putExtra(AlarmActivity.EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, false)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    })
-                } catch (_: SecurityException) {
-                    // OEM/OS restrictions can reject returning to the foreground. Audio continues.
-                } catch (_: android.content.ActivityNotFoundException) {
-                    // The service must not crash and interrupt another enabled accessibility tool.
-                }
+            scheduleAlarmReturn(session)
+        }
+    }
+
+    private fun scheduleAlarmReturn(session: AlarmProtectionSession.Session) {
+        restoreJob = scope.launch {
+            delay(500)
+            if (AlarmProtectionSession.state.value != session) return@launch
+            try {
+                startActivity(Intent(this@AlarmProtectionAccessibilityService,
+                    AlarmActivity::class.java).apply {
+                    putExtra(AlarmActivity.EXTRA_ALARM_ID, session.alarmId)
+                    putExtra(AlarmActivity.EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY, false)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                })
+            } catch (_: SecurityException) {
+                // OEM/OS restrictions can reject returning to the foreground. Audio continues.
+            } catch (_: android.content.ActivityNotFoundException) {
+                // The service must not crash and interrupt another enabled accessibility tool.
             }
         }
     }

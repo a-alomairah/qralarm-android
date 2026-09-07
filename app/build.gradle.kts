@@ -92,9 +92,10 @@ room {
 }
 
 dependencies {
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.7.0")
-    androidTestImplementation("androidx.room:room-testing:2.8.4")
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.junit)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

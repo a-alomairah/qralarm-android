@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,6 +51,7 @@ fun MenuScreen(
     val menuScreenState by menuViewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     MenuScreenContent(
         state = menuScreenState,
@@ -66,13 +68,13 @@ fun MenuScreen(
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                context.getString(R.string.qralarm_github_full_uri).toUri()
+                                resources.getString(R.string.qralarm_github_full_uri).toUri()
                             )
                         )
                     } catch (_: ActivityNotFoundException) {
                         Toast.makeText(
                             context,
-                            context.getString(R.string.issue_opening_the_page),
+                            resources.getString(R.string.issue_opening_the_page),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -83,13 +85,13 @@ fun MenuScreen(
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                context.getString(R.string.qralarm_github_issues_full_uri).toUri()
+                                resources.getString(R.string.qralarm_github_issues_full_uri).toUri()
                             )
                         )
                     } catch (_: ActivityNotFoundException) {
                         Toast.makeText(
                             context,
-                            context.getString(R.string.issue_opening_the_page),
+                            resources.getString(R.string.issue_opening_the_page),
                             Toast.LENGTH_SHORT
                         ).show()
                     }

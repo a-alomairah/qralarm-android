@@ -78,6 +78,7 @@ class DisableAlarmScannerViewModel @AssistedInject constructor(
         }
     }
 
+    @androidx.annotation.OptIn(androidx.camera.lifecycle.ExperimentalCameraProviderConfiguration::class)
     fun onEvent(event: DisableAlarmScannerScreenUserEvent) {
         when (event) {
             is DisableAlarmScannerScreenUserEvent.InitializeCamera -> viewModelScope.launch {

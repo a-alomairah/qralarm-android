@@ -24,7 +24,7 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var restoreJob: Job? = null
     private var lastPowerDismissAt = 0L
-    private val consumedKeys = mutableSetOf<Int>()
+    private val volumeKeyFilter = AlarmVolumeKeyFilter()
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -39,7 +39,7 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
                         AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
                             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
                     } else 0
-                    flags = if (session?.blockVolumeDown == true || consumedKeys.isNotEmpty()) {
+                    flags = if (session?.blockVolumeDown == true || volumeKeyFilter.hasPendingKeys) {
                         flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
                     } else flags and AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS.inv()
                 }
@@ -120,16 +120,14 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_UP && consumedKeys.remove(event.keyCode)) return true
-        val session = AlarmProtectionSession.state.value ?: return false
-        if (!session.blockVolumeDown) return false
-        if (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-            event.keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || event.keyCode == KeyEvent.KEYCODE_MUTE
-        ) {
-            if (event.action == KeyEvent.ACTION_DOWN) consumedKeys.add(event.keyCode)
-            return true
+        val enabled = AlarmProtectionSession.state.value?.blockVolumeDown == true
+        val consumed = volumeKeyFilter.handle(event.keyCode, event.action, enabled, event.repeatCount)
+        if (!enabled && !volumeKeyFilter.hasPendingKeys) {
+            serviceInfo = serviceInfo.apply {
+                flags = flags and AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS.inv()
+            }
         }
-        return false // Volume up and the power button retain their normal behavior.
+        return consumed
     }
 
     private fun isAllowedSystemWindow(name: String): Boolean =
@@ -158,7 +156,7 @@ class AlarmProtectionAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         scope.cancel()
-        consumedKeys.clear()
+        volumeKeyFilter.clear()
         super.onDestroy()
     }
 

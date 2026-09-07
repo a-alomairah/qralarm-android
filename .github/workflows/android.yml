@@ -1,7 +1,7 @@
 name: Android fork checks
 on:
   push:
-    branches: [master, 'feat/**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
 permissions:

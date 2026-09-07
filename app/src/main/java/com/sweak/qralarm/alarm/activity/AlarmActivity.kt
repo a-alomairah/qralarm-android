@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.sweak.qralarm.alarm.protection.AlarmVolumeKeyFilter
 import com.sweak.qralarm.alarm.protection.AlarmProtectionSession
 import com.sweak.qralarm.alarm.service.AlarmService
 import com.sweak.qralarm.app.activity.MainActivity
@@ -317,23 +318,18 @@ class AlarmActivity : FragmentActivity() {
             intent.extras?.getBoolean(EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY) == true
     }
 
-    private val consumedVolumeKeys = mutableSetOf<Int>()
+    private val volumeKeyFilter = AlarmVolumeKeyFilter()
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val session = AlarmProtectionSession.state.value
-        if (session != null && session.alarmId == intent.getLongExtra(EXTRA_ALARM_ID, 0L) &&
-            session.blockVolumeDown &&
-            (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-                keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || keyCode == KeyEvent.KEYCODE_MUTE)
-        ) {
-            consumedVolumeKeys.add(keyCode)
-            return true
-        }
+        val enabled = session != null &&
+            session.alarmId == intent.getLongExtra(EXTRA_ALARM_ID, 0L) && session.blockVolumeDown
+        if (volumeKeyFilter.handle(keyCode, KeyEvent.ACTION_DOWN, enabled, event.repeatCount)) return true
         return super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        if (consumedVolumeKeys.remove(keyCode)) return true
+        if (volumeKeyFilter.handle(keyCode, KeyEvent.ACTION_UP, false)) return true
         return super.onKeyUp(keyCode, event)
     }
 

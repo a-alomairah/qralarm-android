@@ -1043,10 +1043,17 @@ private fun AddEditAlarmScreenContent(
                                 onEvent(AddEditAlarmScreenUserEvent.SpecialSettingsClicked)
                             },
                             title = stringResource(R.string.special_settings),
-                            description = buildString {
-                                append(stringResource(R.string.do_not_leave_alarm))
-                                append(", ")
-                                append(stringResource(R.string.block_volume_down))
+                            description = listOfNotNull(
+                                stringResource(R.string.do_not_leave_alarm)
+                                    .takeIf { state.isDoNotLeaveAlarmEnabled },
+                                stringResource(R.string.power_off_guard)
+                                    .takeIf { state.isPowerOffGuardEnabled },
+                                stringResource(R.string.block_volume_down)
+                                    .takeIf { state.isBlockVolumeDownEnabled },
+                                stringResource(R.string.keep_ringer_on)
+                                    .takeIf { state.isKeepRingerOnEnabled }
+                            ).joinToString(", ").ifEmpty {
+                                stringResource(R.string.alarm_protections_off)
                             },
                             icon = QRAlarmIcons.Star,
                             iconContentDescription = stringResource(

@@ -29,6 +29,7 @@ import com.sweak.qralarm.core.ui.model.Code
 import com.sweak.qralarm.core.ui.sound.AlarmRingtonePlayer
 import com.sweak.qralarm.features.add_edit_alarm.AddEditAlarmFlowUserEvent.AddEditAlarmScreenUserEvent
 import com.sweak.qralarm.features.add_edit_alarm.AddEditAlarmFlowUserEvent.AdvancedAlarmSettingsScreenUserEvent
+import com.sweak.qralarm.features.add_edit_alarm.AddEditAlarmFlowUserEvent.SpecialAlarmSettingsScreenUserEvent
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -227,7 +228,11 @@ class AddEditAlarmViewModel @AssistedInject constructor(
                             isEmergencyTaskEnabled = alarm.isEmergencyTaskEnabled,
                             alarmLabel = alarm.alarmLabel,
                             gentleWakeupDurationInSeconds = alarm.gentleWakeUpDurationInSeconds,
-                            temporaryMuteDurationInSeconds = alarm.temporaryMuteDurationInSeconds
+                            temporaryMuteDurationInSeconds = alarm.temporaryMuteDurationInSeconds,
+                            isDoNotLeaveAlarmEnabled = alarm.isDoNotLeaveAlarmEnabled,
+                            isPowerOffGuardEnabled = alarm.isPowerOffGuardEnabled,
+                            isBlockVolumeDownEnabled = alarm.isBlockVolumeDownEnabled,
+                            isKeepRingerOnEnabled = alarm.isKeepRingerOnEnabled
                         )
                     }
                 }
@@ -788,6 +793,26 @@ class AddEditAlarmViewModel @AssistedInject constructor(
                 }
             }
 
+            is SpecialAlarmSettingsScreenUserEvent.DoNotLeaveAlarmEnabledChanged -> {
+                if (event.isEnabled != state.value.isDoNotLeaveAlarmEnabled) hasUnsavedChanges = true
+                _state.update { it.copy(isDoNotLeaveAlarmEnabled = event.isEnabled) }
+            }
+
+            is SpecialAlarmSettingsScreenUserEvent.PowerOffGuardEnabledChanged -> {
+                if (event.isEnabled != state.value.isPowerOffGuardEnabled) hasUnsavedChanges = true
+                _state.update { it.copy(isPowerOffGuardEnabled = event.isEnabled) }
+            }
+
+            is SpecialAlarmSettingsScreenUserEvent.BlockVolumeDownEnabledChanged -> {
+                if (event.isEnabled != state.value.isBlockVolumeDownEnabled) hasUnsavedChanges = true
+                _state.update { it.copy(isBlockVolumeDownEnabled = event.isEnabled) }
+            }
+
+            is SpecialAlarmSettingsScreenUserEvent.KeepRingerOnEnabledChanged -> {
+                if (event.isEnabled != state.value.isKeepRingerOnEnabled) hasUnsavedChanges = true
+                _state.update { it.copy(isKeepRingerOnEnabled = event.isEnabled) }
+            }
+
             is AdvancedAlarmSettingsScreenUserEvent.ChooseGentleWakeUpDurationDialogVisible -> {
                 _state.update { currentState ->
                     currentState.copy(
@@ -976,7 +1001,11 @@ class AddEditAlarmViewModel @AssistedInject constructor(
             alarmLabel = currentState.alarmLabel,
             gentleWakeUpDurationInSeconds = currentState.gentleWakeupDurationInSeconds,
             temporaryMuteDurationInSeconds = currentState.temporaryMuteDurationInSeconds,
-            skipAlarmUntilTimeInMillis = null
+            skipAlarmUntilTimeInMillis = null,
+            isDoNotLeaveAlarmEnabled = currentState.isDoNotLeaveAlarmEnabled,
+            isPowerOffGuardEnabled = currentState.isPowerOffGuardEnabled,
+            isBlockVolumeDownEnabled = currentState.isBlockVolumeDownEnabled,
+            isKeepRingerOnEnabled = currentState.isKeepRingerOnEnabled
         )
 
         val addOrEditAlarmResult = addOrEditAlarm(

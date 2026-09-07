@@ -67,7 +67,11 @@ data class AddEditAlarmFlowState(
     val permissionsDialogState: PermissionsDialogState = PermissionsDialogState(),
     val isDeleteAlarmDialogVisible: Boolean = false,
     val isDiscardAlarmChangesDialogVisible: Boolean = false,
-    val isDownloadCodeDialogVisible: Boolean = false
+    val isDownloadCodeDialogVisible: Boolean = false,
+    val isDoNotLeaveAlarmEnabled: Boolean = false,
+    val isPowerOffGuardEnabled: Boolean = false,
+    val isBlockVolumeDownEnabled: Boolean = false,
+    val isKeepRingerOnEnabled: Boolean = false
 ) : Parcelable {
     @Parcelize
     data class PermissionsDialogState(

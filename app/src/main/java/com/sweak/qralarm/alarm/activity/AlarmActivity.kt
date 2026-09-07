@@ -4,6 +4,7 @@ import android.app.KeyguardManager
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.sweak.qralarm.alarm.protection.AlarmProtectionSession
 import com.sweak.qralarm.alarm.service.AlarmService
 import com.sweak.qralarm.app.activity.MainActivity
 import com.sweak.qralarm.core.designsystem.theme.QRAlarmTheme
@@ -293,20 +295,44 @@ class AlarmActivity : FragmentActivity() {
     }
 
     private suspend fun stopService(alarmId: Long) {
-        alarmsRepository.setAlarmRunning(
-            alarmId = alarmId,
-            running = false
-        )
-        stopService(
-            Intent(this@AlarmActivity, AlarmService::class.java)
-        )
+        val activeAlarmId = AlarmProtectionSession.state.value?.alarmId
+        if (activeAlarmId == null || activeAlarmId == alarmId) {
+            AlarmProtectionSession.stop(alarmId)
+            // Stop before suspending for storage, so a new delivery cannot be stopped by an
+            // old screen after the database write completes.
+            stopService(Intent(this@AlarmActivity, AlarmService::class.java))
+        }
+        alarmsRepository.setAlarmRunning(alarmId = alarmId, running = false)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        val previousAlarmId = this.intent.getLongExtra(EXTRA_ALARM_ID, 0L)
+        setIntent(intent)
+        if (intent.getLongExtra(EXTRA_ALARM_ID, 0L) != previousAlarmId) {
+            recreate() // A replacement alarm must not retain the old scanner/navigation state.
+        }
 
         isLaunchedFromMainActivity =
             intent.extras?.getBoolean(EXTRA_LAUNCHED_FROM_MAIN_ACTIVITY) == true
+    }
+
+    private val consumedVolumeKeys = mutableSetOf<Int>()
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_UP && consumedVolumeKeys.remove(event.keyCode)) {
+            return true
+        }
+        val session = AlarmProtectionSession.state.value
+        if (session != null && session.alarmId == intent.getLongExtra(EXTRA_ALARM_ID, 0L) &&
+            session.blockVolumeDown &&
+            (event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+                event.keyCode == KeyEvent.KEYCODE_VOLUME_MUTE || event.keyCode == KeyEvent.KEYCODE_MUTE)
+        ) {
+            if (event.action == KeyEvent.ACTION_DOWN) consumedVolumeKeys.add(event.keyCode)
+            return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     companion object {

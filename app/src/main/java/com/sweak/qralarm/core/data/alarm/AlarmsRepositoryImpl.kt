@@ -51,7 +51,11 @@ class AlarmsRepositoryImpl @Inject constructor(
                 alarmLabel = alarm.alarmLabel,
                 gentleWakeUpDurationInSeconds = alarm.gentleWakeUpDurationInSeconds,
                 temporaryMuteDurationInSeconds = alarm.temporaryMuteDurationInSeconds,
-                skipAlarmUntilTimeInMillis = alarm.skipAlarmUntilTimeInMillis
+                skipAlarmUntilTimeInMillis = alarm.skipAlarmUntilTimeInMillis,
+                isDoNotLeaveAlarmEnabled = alarm.isDoNotLeaveAlarmEnabled,
+                isPowerOffGuardEnabled = alarm.isPowerOffGuardEnabled,
+                isBlockVolumeDownEnabled = alarm.isBlockVolumeDownEnabled,
+                isKeepRingerOnEnabled = alarm.isKeepRingerOnEnabled
             )
         )
     }
@@ -186,7 +190,11 @@ class AlarmsRepositoryImpl @Inject constructor(
             alarmLabel = alarmEntity.alarmLabel,
             gentleWakeUpDurationInSeconds = alarmEntity.gentleWakeUpDurationInSeconds,
             temporaryMuteDurationInSeconds = alarmEntity.temporaryMuteDurationInSeconds,
-            skipAlarmUntilTimeInMillis = alarmEntity.skipAlarmUntilTimeInMillis
+            skipAlarmUntilTimeInMillis = alarmEntity.skipAlarmUntilTimeInMillis,
+                isDoNotLeaveAlarmEnabled = alarmEntity.isDoNotLeaveAlarmEnabled,
+                isPowerOffGuardEnabled = alarmEntity.isPowerOffGuardEnabled,
+                isBlockVolumeDownEnabled = alarmEntity.isBlockVolumeDownEnabled,
+                isKeepRingerOnEnabled = alarmEntity.isKeepRingerOnEnabled
         )
     }
 

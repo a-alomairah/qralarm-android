@@ -132,7 +132,10 @@ sealed class AddEditAlarmFlowUserEvent {
 
     sealed class SpecialAlarmSettingsScreenUserEvent : AddEditAlarmFlowUserEvent() {
         data object OnCancelClicked : SpecialAlarmSettingsScreenUserEvent()
-        data object TryUseSpecialAlarmSettings : SpecialAlarmSettingsScreenUserEvent()
+        data class DoNotLeaveAlarmEnabledChanged(val isEnabled: Boolean) : SpecialAlarmSettingsScreenUserEvent()
+        data class PowerOffGuardEnabledChanged(val isEnabled: Boolean) : SpecialAlarmSettingsScreenUserEvent()
+        data class BlockVolumeDownEnabledChanged(val isEnabled: Boolean) : SpecialAlarmSettingsScreenUserEvent()
+        data class KeepRingerOnEnabledChanged(val isEnabled: Boolean) : SpecialAlarmSettingsScreenUserEvent()
     }
 
     sealed class AlarmsChainSettingsScreenUserEvent : AddEditAlarmFlowUserEvent() {

@@ -57,6 +57,7 @@ class CustomCodeScannerViewModel @AssistedInject constructor(
 
     private var hasHandledFoundCode = false
 
+    @androidx.annotation.OptIn(androidx.camera.lifecycle.ExperimentalCameraProviderConfiguration::class)
     fun onEvent(event: CustomCodeScannerScreenUserEvent) {
         when (event) {
             is CustomCodeScannerScreenUserEvent.InitializeCamera -> viewModelScope.launch {

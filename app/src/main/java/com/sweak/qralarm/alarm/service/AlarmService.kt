@@ -3,6 +3,7 @@ package com.sweak.qralarm.alarm.service
 import android.annotation.SuppressLint
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -21,6 +22,8 @@ import com.sweak.qralarm.R
 import com.sweak.qralarm.alarm.ALARM_NOTIFICATION_CHANNEL_ID
 import com.sweak.qralarm.alarm.QRAlarmManager
 import com.sweak.qralarm.alarm.activity.AlarmActivity
+import com.sweak.qralarm.alarm.protection.AlarmAudioProtection
+import com.sweak.qralarm.alarm.protection.AlarmProtectionSession
 import com.sweak.qralarm.alarm.util.setAlarmVolume
 import com.sweak.qralarm.core.designsystem.theme.Jacarta
 import com.sweak.qralarm.core.domain.alarm.Alarm
@@ -37,6 +40,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -44,7 +49,8 @@ import kotlin.time.Duration.Companion.seconds
 @AndroidEntryPoint
 class AlarmService : Service() {
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+    private val startMutex = Mutex()
 
     @Inject
     lateinit var alarmsRepository: AlarmsRepository
@@ -67,6 +73,8 @@ class AlarmService : Service() {
     private var emergencyTaskAlarmMuteJob: Job? = null
     private var hasAlarmBeenAlreadyTemporarilyMuted = false
     private var originalSystemAlarmVolume: Int? = null
+    private var audioProtection: AlarmAudioProtection? = null
+    private var audioProtectionJob: Job? = null
 
     private val temporaryAlarmMuteReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -113,7 +121,11 @@ class AlarmService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent == null) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         var shouldStopService = false
         val alarmId = intent.extras?.getLong(EXTRA_ALARM_ID).run {
             if (this == null) {
@@ -144,67 +156,69 @@ class AlarmService : Service() {
         }
 
         serviceScope.launch {
-            val isSnoozeAlarm = intent.extras?.getBoolean(EXTRA_IS_SNOOZE_ALARM)
+            startMutex.withLock {
+                val isSnoozeAlarm = intent.extras?.getBoolean(EXTRA_IS_SNOOZE_ALARM)
 
-            if (shouldStopService) {
-                userDataRepository.setAlarmMissedDetected(detected = true)
-                handleEarlyServiceStop(alarmId)
-                return@launch
-            }
-
-            alarmsRepository.getAlarm(alarmId = alarmId)?.let {
-                alarm = it
-                if (isAbnormalLaunch(alarm, isSnoozeAlarm)) {
+                if (shouldStopService) {
+                    userDataRepository.setAlarmMissedDetected(detected = true)
                     handleEarlyServiceStop(alarmId)
-                    return@launch
+                    return@withLock
                 }
-            } ?: run {
-                handleEarlyServiceStop(alarmId)
-                return@launch
-            }
 
-            // The service is a singleton, so if a previous alarm is still ringing tear down first.
-            if (isRunning) {
+                val previousAlarmId = AlarmProtectionSession.state.value?.alarmId
+                // Ignore duplicate deliveries; restarting would replace original audio snapshots.
+                if (previousAlarmId == alarmId) return@withLock
+                val incomingAlarm = alarmsRepository.getAlarm(alarmId = alarmId)
+                if (incomingAlarm == null || isAbnormalLaunch(incomingAlarm, isSnoozeAlarm)) {
+                    if (!isRunning) {
+                        if (incomingAlarm != null) alarm = incomingAlarm
+                        handleEarlyServiceStop(alarmId)
+                    }
+                    return@withLock
+                }
+
+                // Retire the old session before taking audio snapshots for the new one.
+                if (isRunning) cleanUpPreviousAlarmState()
+                previousAlarmId?.let { alarmsRepository.setAlarmRunning(it, false) }
+                alarm = incomingAlarm
+                isRunning = true
+                AlarmProtectionSession.start(alarm)
+
+                ContextCompat.registerReceiver(
+                    this@AlarmService,
+                    temporaryAlarmMuteReceiver,
+                    IntentFilter(ACTION_TEMPORARY_ALARM_MUTE),
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+
+                ContextCompat.registerReceiver(
+                    this@AlarmService,
+                    emergencyTaskAlarmMuteReceiver,
+                    IntentFilter(ACTION_EMERGENCY_TASK_ALARM_MUTE),
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
+
+                if (isSnoozeAlarm == false) {
+                    resetAvailableSnoozes()
+                }
+
+                alarmsRepository.setAlarmRunning(
+                    alarmId = alarmId,
+                    running = true
+                )
+                alarmsRepository.setAlarmSnoozed(
+                    alarmId = alarmId,
+                    snoozed = false
+                )
+
+                handleAlarmRescheduling()
+
+                adjustAlarmVolume()
+                startAudioProtection()
+
                 withContext(Dispatchers.Main) {
-                    cleanUpPreviousAlarmState()
+                    startAlarm()
                 }
-            }
-
-            isRunning = true
-
-            ContextCompat.registerReceiver(
-                this@AlarmService,
-                temporaryAlarmMuteReceiver,
-                IntentFilter(ACTION_TEMPORARY_ALARM_MUTE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-
-            ContextCompat.registerReceiver(
-                this@AlarmService,
-                emergencyTaskAlarmMuteReceiver,
-                IntentFilter(ACTION_EMERGENCY_TASK_ALARM_MUTE),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-            )
-
-            if (isSnoozeAlarm == false) {
-                resetAvailableSnoozes()
-            }
-
-            alarmsRepository.setAlarmRunning(
-                alarmId = alarmId,
-                running = true
-            )
-            alarmsRepository.setAlarmSnoozed(
-                alarmId = alarmId,
-                snoozed = false
-            )
-
-            handleAlarmRescheduling()
-
-            adjustAlarmVolume()
-
-            withContext(Dispatchers.Main) {
-                startAlarm()
             }
         }
 
@@ -302,8 +316,10 @@ class AlarmService : Service() {
     private fun adjustAlarmVolume() {
         val alarmVolumeMode = alarm.alarmVolumeMode
 
-        if (alarmVolumeMode is Alarm.AlarmVolumeMode.Custom) {
+        if (alarmVolumeMode is Alarm.AlarmVolumeMode.Custom || alarm.isBlockVolumeDownEnabled) {
             originalSystemAlarmVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+        }
+        if (alarmVolumeMode is Alarm.AlarmVolumeMode.Custom) {
 
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
             val minVolume = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -316,6 +332,56 @@ class AlarmService : Service() {
 
             audioManager.setAlarmVolume(volumeLevel)
         }
+    }
+
+    private fun startAudioProtection() {
+        if (!alarm.isBlockVolumeDownEnabled && !alarm.isKeepRingerOnEnabled) return
+        val manager = getSystemService(NotificationManager::class.java)
+        val floor = if (alarm.isBlockVolumeDownEnabled) {
+            val min = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                audioManager.getStreamMinVolume(AudioManager.STREAM_ALARM)
+            } else 0
+            audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+                .coerceAtLeast(min + 1)
+                .coerceAtMost(audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM))
+        } else null
+        val protection = AlarmAudioProtection(
+            audio = object : AlarmAudioProtection.AudioAccess {
+                override var alarmVolume: Int
+                    get() = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+                    set(value) { audioManager.setAlarmVolume(value) }
+                override var ringerMode: Int
+                    get() = audioManager.ringerMode
+                    set(value) {
+                        try { audioManager.ringerMode = value }
+                        catch (_: SecurityException) { /* Permission can be revoked while ringing. */ }
+                    }
+                override val canChangeRingerMode: Boolean
+                    get() = manager.isNotificationPolicyAccessGranted
+            },
+            volumeFloor = floor,
+            keepRingerOn = alarm.isKeepRingerOnEnabled
+        )
+        audioProtection = protection
+        val protectedAlarmId = alarm.alarmId
+        audioProtectionJob = serviceScope.launch {
+            try {
+                while (AlarmProtectionSession.state.value?.alarmId == protectedAlarmId) {
+                    protection.enforce()
+                    delay(250)
+                }
+            } finally {
+                protection.stop()
+            }
+        }
+    }
+
+    private fun stopProtection() {
+        AlarmProtectionSession.stop()
+        audioProtectionJob?.cancel()
+        audioProtectionJob = null
+        audioProtection?.stop()
+        audioProtection = null
     }
 
     private fun startAlarm() {
@@ -344,6 +410,7 @@ class AlarmService : Service() {
     }
 
     private fun cleanUpPreviousAlarmState() {
+        stopProtection()
         temporaryAlarmMuteJob?.cancel()
         temporaryAlarmMuteJob = null
         emergencyTaskAlarmMuteJob?.cancel()
@@ -366,6 +433,7 @@ class AlarmService : Service() {
 
     override fun onDestroy() {
         isRunning = false
+        stopProtection()
 
         temporaryAlarmMuteJob?.cancel()
         emergencyTaskAlarmMuteJob?.cancel()

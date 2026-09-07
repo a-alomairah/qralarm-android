@@ -44,5 +44,9 @@ data class AlarmEntity(
     val alarmLabel: String?,
     val gentleWakeUpDurationInSeconds: Int,
     val temporaryMuteDurationInSeconds: Int,
-    val skipAlarmUntilTimeInMillis: Long?
+    val skipAlarmUntilTimeInMillis: Long?,
+    @ColumnInfo(defaultValue = "FALSE") val isDoNotLeaveAlarmEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "FALSE") val isPowerOffGuardEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "FALSE") val isBlockVolumeDownEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "FALSE") val isKeepRingerOnEnabled: Boolean = false
 )

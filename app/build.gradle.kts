@@ -23,7 +23,7 @@ android {
     compileSdk = 37
 
     signingConfigs {
-        create("release") {
+        if (keystorePropertiesFile.exists()) create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String
             keyPassword = keystoreProperties["keyPassword"] as String
             storeFile = file(keystoreProperties["storeFile"] as String)
@@ -33,6 +33,7 @@ android {
 
     defaultConfig {
         applicationId = "com.sweak.qralarm"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 23
         targetSdk = 37
         versionCode = 88
@@ -44,6 +45,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".fork.debug"
+            versionNameSuffix = "-fork-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -51,7 +56,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {
@@ -65,6 +70,8 @@ android {
             languageVersion = KotlinVersion.KOTLIN_2_3
         }
     }
+    sourceSets.getByName("androidTest").assets.srcDir("$projectDir/schemas")
+
     buildFeatures {
         compose = true
         viewBinding = true
@@ -85,6 +92,11 @@ room {
 }
 
 dependencies {
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.junit)
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

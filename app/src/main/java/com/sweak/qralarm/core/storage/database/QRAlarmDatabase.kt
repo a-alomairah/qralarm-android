@@ -12,7 +12,7 @@ import com.sweak.qralarm.core.storage.database.model.CodeEntity
 
 @Database(
     entities = [AlarmEntity::class, CodeEntity::class],
-    version = 10,
+    version = 11,
     exportSchema = true,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
@@ -27,6 +27,15 @@ abstract class QRAlarmDatabase : RoomDatabase() {
     abstract fun codesDao(): CodesDao
 
     companion object {
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarm ADD COLUMN isDoNotLeaveAlarmEnabled INTEGER NOT NULL DEFAULT FALSE")
+                db.execSQL("ALTER TABLE alarm ADD COLUMN isPowerOffGuardEnabled INTEGER NOT NULL DEFAULT FALSE")
+                db.execSQL("ALTER TABLE alarm ADD COLUMN isBlockVolumeDownEnabled INTEGER NOT NULL DEFAULT FALSE")
+                db.execSQL("ALTER TABLE alarm ADD COLUMN isKeepRingerOnEnabled INTEGER NOT NULL DEFAULT FALSE")
+            }
+        }
+
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // This migration handles the removal of the column isTemporaryMuteEnabled in favor
